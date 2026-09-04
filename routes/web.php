@@ -11,6 +11,7 @@ use App\Http\Controllers\Auditoria\QueryLogController;
 use App\Http\Controllers\Auditoria\SesionesController;
 use App\Http\Controllers\Configuracion\AparienciaController;
 use App\Http\Controllers\Documentos\DocumentoController;
+use App\Http\Controllers\EstudianteController;
 use App\Http\Controllers\Finanzas\CargoController;
 use App\Http\Controllers\Finanzas\CajaController;
 use App\Http\Controllers\Finanzas\PagoController;
@@ -33,6 +34,9 @@ Route::post('/logout', LogoutController::class)->middleware('auth')->name('logou
 Route::middleware(['auth', 'check.active'])->group(function () {
 
     Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
+
+    // ── Estudiantes ──────────────────────────────────────────────────
+    Route::resource('estudiantes', EstudianteController::class);
 
     // ── Alumnos ─────────────────────────────────────────────────────
     Route::resource('alumnos', AlumnoController::class);
