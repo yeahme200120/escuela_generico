@@ -57,6 +57,57 @@ Route::middleware(['auth', 'check.active'])->group(function () {
     });
 
     // ── Auditoría ────────────────────────────────────────────────────
+    // Organización / Catálogos (scaffolded)
+    Route::resource('organizaciones', App\Http\Controllers\OrganizacionController::class);
+    Route::resource('escuelas', App\Http\Controllers\EscuelaController::class);
+    Route::resource('sedes', App\Http\Controllers\SedeController::class);
+    Route::resource('edificios', App\Http\Controllers\EdificioController::class);
+    Route::resource('aulas', App\Http\Controllers\AulaController::class);
+    Route::resource('ciclos', App\Http\Controllers\CicloEscolarController::class);
+    Route::resource('niveles', App\Http\Controllers\NivelController::class);
+    Route::resource('grados', App\Http\Controllers\GradoController::class);
+    Route::resource('grupos', App\Http\Controllers\GrupoController::class);
+    Route::resource('materias', App\Http\Controllers\MateriaController::class);
+    Route::resource('planes', App\Http\Controllers\PlanEstudioController::class);
+
+    // Académico
+    Route::resource('horarios', App\Http\Controllers\HorarioController::class);
+    Route::resource('asistencias', App\Http\Controllers\AsistenciaController::class);
+    Route::resource('calificaciones', App\Http\Controllers\CalificacionController::class);
+    Route::resource('periodos-evaluacion', App\Http\Controllers\PeriodoEvaluacionController::class);
+    Route::resource('regularizaciones', App\Http\Controllers\RegularizacionController::class);
+
+    // Alumnos / Trayectoria
+    Route::resource('bajas', App\Http\Controllers\BajaController::class);
+    Route::resource('tutores', App\Http\Controllers\TutorController::class);
+    Route::resource('trayectorias', App\Http\Controllers\TrayectoriaController::class);
+    Route::resource('docentes', App\Http\Controllers\DocenteController::class);
+
+    // Finanzas adicionales
+    Route::resource('conceptos', App\Http\Controllers\ConceptoPagoController::class);
+    Route::resource('parcialidades', App\Http\Controllers\ParcialidadController::class);
+
+    // Usuarios / Seguridad
+    Route::resource('users', App\Http\Controllers\UserController::class);
+    Route::resource('roles', App\Http\Controllers\RolController::class);
+    Route::resource('password-resets', App\Http\Controllers\PasswordResetController::class);
+    Route::resource('two-factor', App\Http\Controllers\TwoFactorController::class);
+
+    // RH / Inventario / Mantenimiento
+    Route::resource('contratos', App\Http\Controllers\ContratoController::class);
+    Route::resource('asistencia-personal', App\Http\Controllers\AsistenciaPersonalController::class);
+    Route::resource('activos-fijos', App\Http\Controllers\ActivoFijoController::class);
+    Route::resource('mantenimientos', App\Http\Controllers\MantenimientoController::class);
+
+    // Comunicación / Calendario / Admisiones
+    Route::resource('notificaciones', App\Http\Controllers\NotificacionController::class);
+    Route::resource('calendario', App\Http\Controllers\CalendarioController::class);
+    Route::resource('admisiones', App\Http\Controllers\AdmisionController::class);
+
+    // Reportes
+    Route::resource('reportes', App\Http\Controllers\ReporteController::class);
+
+    // ── Auditoría ────────────────────────────────────────────────────
     Route::prefix('auditoria')->name('auditoria.')->group(function () {
         Route::get('/',         [AuditLogController::class,  'index'])->name('index');
         Route::get('/accesos',  [AccessLogController::class, 'index'])->name('accesos');
