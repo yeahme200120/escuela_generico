@@ -38,10 +38,18 @@ Detalles importantes:
 
 
 ## Dockerización añadida
-Se añadió docker-compose.yml y python/Dockerfile para ejecutar servicios:
-- MySQL 8
+Se añadió docker-compose.yml y python/Dockerfile para ejecutar servicios localmente:
+- MySQL 8 (mapeado en el host al puerto 3310 para evitar conflictos con MySQL local)
 - Redis
 - Python workers (FastAPI)
 
-Ejecutar: docker-compose up --build -d y luego probar curl http://localhost:8001/health -H 'X-Python-Secret: dev-secret-key'
+Estado y verificación rápida:
+1. Imagen `sistema-escolar-python-workers` construida localmente (se ajustaron versiones en `python/requirements.txt`).
+2. Contenedores levantados con `docker-compose up -d` (MySQL -> host:3310, Redis -> 6379, Python -> 8001).
+3. Health check: `curl -H "X-Python-Secret: dev-secret-key" http://127.0.0.1:8001/health` → devuelve `{"status":"ok"}`.
+4. Queue worker: arrancado localmente (php artisan queue:work) — PID: 19720. Asegurar QUEUE_CONNECTION=redis en .env y que Redis esté accesible en 127.0.0.1:6379.
+
+Ejecutar para reproducir:
+- `docker-compose build --no-cache && docker-compose up -d`
+- `docker-compose logs --tail 200 python-workers` para revisar arranque y errores.
 

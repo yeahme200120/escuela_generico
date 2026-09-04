@@ -6,7 +6,7 @@ import logging
 
 app = FastAPI(
     title='Sistema Escolar - Python Workers',
-    description='Microservicio de procesamiento asincrónico',
+    description='Microservicio de procesamiento asincronico',
     version='1.0.0'
 )
 
@@ -45,7 +45,7 @@ def calcular_indicadores(payload: TrabajoProcesamiento, background_tasks: Backgr
             'job_id': 'pending',
             'status': 'processing',
             'tipo': payload.tipo,
-            'mensaje': 'Procesando indicadores académicos'
+            'mensaje': 'Procesando indicadores academicos'
         }
     except Exception as e:
         logger.error(f"Error: {str(e)}")
@@ -61,7 +61,7 @@ def calcular_riesgo(payload: TrabajoProcesamiento, background_tasks: BackgroundT
             'job_id': 'pending',
             'status': 'processing',
             'tipo': payload.tipo,
-            'mensaje': 'Calculando riesgo académico'
+            'mensaje': 'Calculando riesgo academico'
         }
     except Exception as e:
         logger.error(f"Error: {str(e)}")
@@ -93,7 +93,7 @@ def procesar_importaciones(payload: TrabajoProcesamiento, background_tasks: Back
             'job_id': 'pending',
             'status': 'processing',
             'tipo': payload.tipo,
-            'mensaje': 'Procesando importación de datos'
+            'mensaje': 'Procesando importacion de datos'
         }
     except Exception as e:
         logger.error(f"Error: {str(e)}")
