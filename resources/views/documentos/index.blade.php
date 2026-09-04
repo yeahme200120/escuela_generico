@@ -1,0 +1,1 @@
+﻿<x-layouts.app page-title="Documentos escolares"><x-ui.page-header title="Documentos escolares" subtitle="Módulo Documentos" /><x-ui.card><x-ui.empty-state message="Vista en construcción" /></x-ui.card></x-layouts.app>

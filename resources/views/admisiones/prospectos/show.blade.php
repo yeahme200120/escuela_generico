@@ -1,0 +1,1 @@
+﻿<x-layouts.app page-title="Detalle prospecto"><x-ui.page-header title="Detalle prospecto" subtitle="Módulo Admisiones" /><x-ui.card><x-ui.empty-state message="Vista en construcción" /></x-ui.card></x-layouts.app>

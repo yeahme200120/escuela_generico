@@ -1,0 +1,1 @@
+﻿<x-layouts.app page-title="Editar empleado"><x-ui.page-header title="Editar empleado" subtitle="Módulo RH" /><x-ui.card><x-ui.empty-state message="Vista en construcción" /></x-ui.card></x-layouts.app>
