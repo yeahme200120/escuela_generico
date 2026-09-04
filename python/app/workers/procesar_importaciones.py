@@ -1,20 +1,45 @@
 import logging
 from datetime import datetime
-import pandas as pd
-from io import BytesIO
+try:
+    import pandas as pd
+    from io import BytesIO
+except Exception:
+    pd = None
+    BytesIO = None
 
 logger = logging.getLogger(__name__)
 
 def execute(payload):
     """Procesa importaciones masivas de Excel/CSV"""
     try:
-        logger.info(f"Iniciando procesamiento de importación: {payload}")
-        
+        logger.info(f"Iniciando procesamiento de importacion: {payload}")
+
         archivo_ruta = payload.get('archivo_ruta')
         tipo_datos = payload.get('tipo_datos')  # alumnos, docentes, calificaciones, etc
         validar_duplicados = payload.get('validar_duplicados', True)
-        
-        # Simular procesamiento
+
+        # Si pandas no estÃ¡ disponible en el entorno, simular procesamiento ligero
+        if pd is None:
+            resultados = {
+                'archivo': archivo_ruta,
+                'tipo_datos': tipo_datos,
+                'fecha_procesamiento': datetime.now().isoformat(),
+                'estadisticas': {
+                    'filas_leidas': 0,
+                    'filas_validas': 0,
+                    'filas_rechazadas': 0,
+                    'duplicados_encontrados': 0,
+                    'registros_importados': 0,
+                    'registros_procesados': 0
+                },
+                'errores': [],
+                'advertencias': ['Pandas no disponible en este entorno; simulacion ligera']
+            }
+
+            logger.info(f"Importacion (simulada) completada: {resultados}")
+            return resultados
+
+        # Simular procesamiento con pandas (cuando estÃ© disponible)
         resultados = {
             'archivo': archivo_ruta,
             'tipo_datos': tipo_datos,
@@ -27,8 +52,8 @@ def execute(payload):
                 'registros_importados': 340
             },
             'errores': [
-                {'fila': 5, 'campo': 'email', 'error': 'Formato inválido'},
-                {'fila': 12, 'campo': 'fecha_nacimiento', 'error': 'Formato inválido'},
+                {'fila': 5, 'campo': 'email', 'error': 'Formato invalido'},
+                {'fila': 12, 'campo': 'fecha_nacimiento', 'error': 'Formato invalido'},
                 {'fila': 23, 'campo': 'telefono', 'error': 'Ya existe'},
             ],
             'advertencias': [
@@ -36,10 +61,10 @@ def execute(payload):
                 'Se asignaron 5 registros a grupo por defecto'
             ]
         }
-        
-        logger.info(f"Importación completada: {resultados}")
+
+        logger.info(f"Importacion completada: {resultados}")
         return resultados
-        
+
     except Exception as e:
-        logger.error(f"Error procesando importación: {str(e)}")
+        logger.error(f"Error procesando importacion: {str(e)}")
         return {'error': str(e), 'status': 'failed'}

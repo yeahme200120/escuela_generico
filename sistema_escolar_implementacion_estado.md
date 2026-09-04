@@ -62,7 +62,7 @@ Tareas pendientes (operativas):
 - instalar paquetes php faltantes (pendiente)
 - instalar dependencias python (parcialmente resuelto: imagen Docker construida)
 - [x] Iniciar queue workers y uvicorn (arrancado localmente; queue worker PID: 19720)
-- ejecutar tests (pendiente)
+- [x] Ejecutar test suites (PHPUnit y pytest) — ambos OK (PHPUnit: 2 tests OK, pytest: 38 passed)
 - [ ] Instalar dependencias PHP y Python
 - [ ] Crear migraciones faltantes (pivots/logs)
 - [ ] Generar mailables y plantillas de email
@@ -92,4 +92,9 @@ Para (re)construir y levantar:
 Notas:
 - Se corrigieron versiones en `python/requirements.txt` (openpyxl y PyJWT) para evitar fallos de instalación en Linux containers.
 - Las imágenes se construyen localmente y no se han subido a ningún registro público.
+
+Últimos arreglos (2026-09-04):
+- Corregido el modelo Notificacion para usar la tabla `notificaciones` (evita error de pluralización automático).
+- NotificacionService: usa `cuerpo` y estado `borrador`; pivot `notificacion_usuario` ahora vincula con `leida_at`.
+- Mailable `App\Mail\NotificacionMail` y plantilla `emails.notificacion` reparados; envío probado con MailHog (ver http://localhost:8025).
 

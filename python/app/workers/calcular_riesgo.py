@@ -4,14 +4,14 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 def execute(payload):
-    """Calcula riesgo académico de estudiantes"""
+    """Calcula riesgo academico de estudiantes"""
     try:
-        logger.info(f"Iniciando cálculo de riesgo: {payload}")
+        logger.info(f"Iniciando calculo de riesgo: {payload}")
         
         grupo_id = payload.get('grupo_id')
         ciclo_id = payload.get('ciclo_id')
         
-        # Simular evaluación de riesgo
+        # Simular evaluacion de riesgo
         estudiantes_en_riesgo = []
         
         # Motor de reglas simple

@@ -4,9 +4,9 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 def execute(payload):
-    """Calcula indicadores académicos por sede/ciclo"""
+    """Calcula indicadores academicos por sede/ciclo"""
     try:
-        logger.info(f"Iniciando cálculo de indicadores: {payload}")
+        logger.info(f"Iniciando calculo de indicadores: {payload}")
         
         sede_id = payload.get('sede_id')
         ciclo_id = payload.get('ciclo_id')

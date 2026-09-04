@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 def execute(payload):
     """Genera reportes masivos en Excel/PDF"""
     try:
-        logger.info(f"Iniciando generación de reportes: {payload}")
+        logger.info(f"Iniciando generacion de reportes: {payload}")
         
         tipo_reporte = payload.get('tipo')
         fecha_inicio = payload.get('fecha_inicio')

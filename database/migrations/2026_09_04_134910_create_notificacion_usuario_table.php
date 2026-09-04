@@ -8,16 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('notificacion_usuario', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('notificacion_id');
-            $table->unsignedBigInteger('usuario_id');
-            $table->boolean('leida')->default(false);
-            $table->timestamp('created_at')->useCurrent();
+        if (!Schema::hasTable('notificacion_usuario')) {
+            Schema::create('notificacion_usuario', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('notificacion_id');
+                $table->unsignedBigInteger('usuario_id');
+                $table->boolean('leida')->default(false);
+                $table->timestamp('created_at')->useCurrent();
 
-            $table->foreign('notificacion_id')->references('id')->on('notificaciones')->onDelete('cascade');
-            $table->foreign('usuario_id')->references('id')->on('users')->onDelete('cascade');
-        });
+                $table->foreign('notificacion_id')->references('id')->on('notificaciones')->onDelete('cascade');
+                $table->foreign('usuario_id')->references('id')->on('users')->onDelete('cascade');
+            });
+        }
     }
 
     public function down(): void

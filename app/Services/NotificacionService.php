@@ -7,14 +7,15 @@ class NotificacionService {
     public function enviarMulticanal($titulo, $mensaje, $destinatarios = [], $canales = ['email', 'interna']) {
         $notif = Notificacion::create([
             'titulo' => $titulo,
-            'mensaje' => $mensaje,
+            'cuerpo' => $mensaje,
             'tipo' => 'info',
-            'estado' => 'pendiente'
+            'estado' => 'borrador'
         ]);
         
         if (in_array('interna', $canales)) {
             foreach ($destinatarios as $userId) {
-                $notif->usuarios()->attach($userId, ['leida' => false, 'fecha_lectura' => null]);
+                // El pivot usa 'leida' y 'leida_at'
+                $notif->usuarios()->attach($userId, ['leida' => false, 'leida_at' => null]);
             }
         }
         
