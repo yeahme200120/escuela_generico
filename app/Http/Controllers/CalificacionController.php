@@ -1,43 +1,43 @@
 <?php namespace App\Http\Controllers;
 use App\Models\Calificacion;
-use Illuminate\Http\Request;
+use App\Services\RiesgoAcademicoService;
 
-class CalificacionController extends Controller
-{
+class CalificacionController extends Controller {
+    
+    private RiesgoAcademicoService $riesgoService;
+    
+    public function __construct(RiesgoAcademicoService $riesgoService) {
+        $this->riesgoService = $riesgoService;
+    }
+    
     public function index() {
-        $items = Calificacion::with(['alumno', 'materia', 'periodo'])->paginate(20);
-        return view('calificaciones.index', ['items' => $items]);
+        $calificaciones = Calificacion::with(['alumno', 'materia'])
+            ->paginate(15);
+        return view('calificaciones.index', ['calificaciones' => $calificaciones]);
     }
-    public function create() {
-        return view('calificaciones.create');
-    }
-    public function store(Request $request) {
-        $data = $request->validate([
+    
+    public function store(\Illuminate\Http\Request $request) {
+        $request->validate([
             'alumno_id' => 'required|exists:alumnos,id',
             'materia_id' => 'required|exists:materias,id',
-            'periodo_evaluacion_id' => 'required|exists:periodos_evaluacion,id',
-            'calificacion' => 'required|numeric|min:0|max:100',
-            'observaciones' => 'nullable|string|max:500'
+            'calificacion' => 'required|numeric|min:0|max:100'
         ]);
-        Calificacion::create($data);
-        return redirect()->route('calificaciones.index')->with('success', 'Calificación registrada');
+        
+        $calificacion = Calificacion::create($request->all());
+        
+        return redirect()->route('calificaciones.show', $calificacion)
+            ->with('success', 'Calificación registrada correctamente.');
     }
+    
     public function show(Calificacion $calificacion) {
-        return view('calificaciones.show', compact('calificacion'));
-    }
-    public function edit(Calificacion $calificacion) {
-        return view('calificaciones.edit', compact('calificacion'));
-    }
-    public function update(Request $request, Calificacion $calificacion) {
-        $data = $request->validate([
-            'calificacion' => 'required|numeric|min:0|max:100',
-            'observaciones' => 'nullable|string|max:500'
+        // Calcular riesgo si calificación es baja
+        if ($calificacion->calificacion < 70) {
+            $riesgo = $this->riesgoService->evaluarRiesgo($calificacion->alumno_id, null);
+        }
+        
+        return view('calificaciones.show', [
+            'calificacion' => $calificacion,
+            'riesgo' => $riesgo ?? null
         ]);
-        $calificacion->update($data);
-        return redirect()->route('calificaciones.index')->with('success', 'Actualizado');
-    }
-    public function destroy(Calificacion $calificacion) {
-        $calificacion->delete();
-        return back()->with('success', 'Eliminado');
     }
 }

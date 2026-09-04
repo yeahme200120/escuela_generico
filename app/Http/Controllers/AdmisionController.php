@@ -1,12 +1,40 @@
 <?php namespace App\Http\Controllers;
 use App\Models\Admision;
-use Illuminate\Http\Request;
+use App\Services\RiesgoAcademicoService;
+use App\Services\PythonJobService;
+
 class AdmisionController extends Controller {
-    public function index() { $items=Admision::with('prospecto')->paginate(15); return view('admisiones.index',['items'=>$items]); }
-    public function create() { return view('admisiones.create'); }
-    public function store(Request $r) { $d=$r->validate(['prospecto_id'=>'required|exists:prospectos,id','alumno_id'=>'nullable|exists:alumnos,id','grupo_id'=>'required|exists:grupos,id','fecha_admision'=>'required|date']); Admision::create($d); return redirect()->route('admisiones.index')->with('success','Admisión registrada'); }
-    public function show(Admision $a) { return view('admisiones.show',['admision'=>$a]); }
-    public function edit(Admision $a) { return view('admisiones.edit',['admision'=>$a]); }
-    public function update(Request $r, Admision $a) { $d=$r->validate(['grupo_id'=>'required|exists:grupos,id','fecha_admision'=>'required|date']); $a->update($d); return redirect()->route('admisiones.index')->with('success','Actualizado'); }
-    public function destroy(Admision $a) { $a->delete(); return back()->with('success','Eliminado'); }
+    
+    private RiesgoAcademicoService $riesgoService;
+    private PythonJobService $pythonService;
+    
+    public function __construct(RiesgoAcademicoService $riesgoService, PythonJobService $pythonService) {
+        $this->riesgoService = $riesgoService;
+        $this->pythonService = $pythonService;
+    }
+    
+    public function index() {
+        $admisiones = Admision::with('alumno')->paginate(15);
+        return view('admisiones.index', ['admisiones' => $admisiones]);
+    }
+    
+    public function store(\Illuminate\Http\Request $request) {
+        $request->validate([
+            'alumno_id' => 'required|exists:alumnos,id',
+            'estado' => 'required|in:pendiente,aprobada,rechazada'
+        ]);
+        
+        $admision = Admision::create($request->all());
+        
+        // Si fue aprobada, calcular riesgo inicial
+        if ($request->input('estado') === 'aprobada') {
+            $this->pythonService->despacharAsync('calcular_riesgo', [
+                'alumno_id' => $request->input('alumno_id'),
+                'ciclo_id' => null
+            ], auth()->id());
+        }
+        
+        return redirect()->route('admisiones.show', $admision)
+            ->with('success', 'Admisión procesada correctamente.');
+    }
 }
