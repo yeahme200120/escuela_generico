@@ -1,64 +1,12 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Baja;
 use Illuminate\Http\Request;
-
-class BajaController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
+class BajaController extends Controller {
+    public function index() { $items=Baja::with('alumno')->paginate(15); return view('bajas.index',['items'=>$items]); }
+    public function create() { return view('bajas.create'); }
+    public function store(Request $r) { $d=$r->validate(['alumno_id'=>'required|exists:alumnos,id','motivo'=>'required','fecha_baja'=>'required|date']); Baja::create($d); return redirect()->route('bajas.index')->with('success','Baja registrada'); }
+    public function show(Baja $b) { return view('bajas.show',['baja'=>$b]); }
+    public function edit(Baja $b) { return view('bajas.edit',['baja'=>$b]); }
+    public function update(Request $r, Baja $b) { $d=$r->validate(['motivo'=>'required','fecha_baja'=>'required|date']); $b->update($d); return redirect()->route('bajas.index')->with('success','Actualizado'); }
+    public function destroy(Baja $b) { $b->delete(); return back()->with('success','Eliminado'); }
 }

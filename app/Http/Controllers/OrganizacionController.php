@@ -1,64 +1,24 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Organizacion;
 use Illuminate\Http\Request;
 
-class OrganizacionController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+class OrganizacionController extends Controller {
+    public function index() { 
+        $items = Organizacion::paginate(15);
+        return view('organizaciones.index', ['items' => $items]); 
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() { return view('organizaciones.create'); }
+    public function store(Request $r) { 
+        $d = $r->validate(['nombre'=>'required|unique:organizaciones','ruc'=>'nullable|unique:organizaciones','email'=>'nullable|email']);
+        Organizacion::create($d);
+        return redirect()->route('organizaciones.index')->with('success','Creado'); 
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function show(Organizacion $o) { return view('organizaciones.show', ['organizacion'=>$o]); }
+    public function edit(Organizacion $o) { return view('organizaciones.edit', ['organizacion'=>$o]); }
+    public function update(Request $r, Organizacion $o) { 
+        $d = $r->validate(['nombre'=>'required','email'=>'nullable|email']);
+        $o->update($d);
+        return redirect()->route('organizaciones.index')->with('success','Actualizado'); 
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
+    public function destroy(Organizacion $o) { $o->delete(); return back()->with('success','Eliminado'); }
 }
