@@ -1,64 +1,44 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Materia;
 use Illuminate\Http\Request;
 
 class MateriaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = Materia::paginate(15);
+        return view('materias.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('materias.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'nombre' => 'required|string|unique:materias|max:100',
+            'codigo' => 'nullable|string|unique:materias|max:20',
+            'descripcion' => 'nullable|string|max:500',
+            'horas_semanales' => 'nullable|numeric|min:1'
+        ]);
+        Materia::create($data);
+        return redirect()->route('materias.index')->with('success', 'Materia creada');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(Materia $materia) {
+        return view('materias.show', compact('materia'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(Materia $materia) {
+        return view('materias.edit', compact('materia'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, Materia $materia) {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:100|unique:materias,nombre,'.$materia->id,
+            'codigo' => 'nullable|string|max:20|unique:materias,codigo,'.$materia->id,
+            'descripcion' => 'nullable|string|max:500',
+            'horas_semanales' => 'nullable|numeric|min:1'
+        ]);
+        $materia->update($data);
+        return redirect()->route('materias.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(Materia $materia) {
+        $materia->delete();
+        return back()->with('success', 'Eliminado');
     }
 }

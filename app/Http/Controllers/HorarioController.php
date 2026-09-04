@@ -1,64 +1,46 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Horario;
 use Illuminate\Http\Request;
 
 class HorarioController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = Horario::with('grupo')->paginate(15);
+        return view('horarios.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('horarios.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'grupo_id' => 'required|exists:grupos,id',
+            'dia' => 'required|in:lunes,martes,miercoles,jueves,viernes,sabado,domingo',
+            'hora_inicio' => 'required|date_format:H:i',
+            'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
+            'aula_id' => 'required|exists:aulas,id'
+        ]);
+        Horario::create($data);
+        return redirect()->route('horarios.index')->with('success', 'Horario creado');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(Horario $horario) {
+        return view('horarios.show', compact('horario'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(Horario $horario) {
+        return view('horarios.edit', compact('horario'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, Horario $horario) {
+        $data = $request->validate([
+            'grupo_id' => 'required|exists:grupos,id',
+            'dia' => 'required',
+            'hora_inicio' => 'required|date_format:H:i',
+            'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
+            'aula_id' => 'required|exists:aulas,id'
+        ]);
+        $horario->update($data);
+        return redirect()->route('horarios.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(Horario $horario) {
+        $horario->delete();
+        return back()->with('success', 'Eliminado');
     }
 }

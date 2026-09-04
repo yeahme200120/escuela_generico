@@ -1,64 +1,45 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Grupo;
 use Illuminate\Http\Request;
 
 class GrupoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = Grupo::with(['grado', 'nivel', 'cicloEscolar'])->paginate(15);
+        return view('grupos.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('grupos.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:50',
+            'grado_id' => 'required|exists:grados,id',
+            'ciclo_escolar_id' => 'required|exists:ciclos_escolares,id',
+            'capacidad_maxima' => 'nullable|integer|min:1|max:100',
+            'turno' => 'nullable|in:matutino,vespertino,nocturno'
+        ]);
+        Grupo::create($data);
+        return redirect()->route('grupos.index')->with('success', 'Grupo creado');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(Grupo $grupo) {
+        return view('grupos.show', compact('grupo'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(Grupo $grupo) {
+        return view('grupos.edit', compact('grupo'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, Grupo $grupo) {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:50',
+            'grado_id' => 'required|exists:grados,id',
+            'capacidad_maxima' => 'nullable|integer|min:1|max:100',
+            'turno' => 'nullable|in:matutino,vespertino,nocturno'
+        ]);
+        $grupo->update($data);
+        return redirect()->route('grupos.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(Grupo $grupo) {
+        $grupo->delete();
+        return back()->with('success', 'Eliminado');
     }
 }

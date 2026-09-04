@@ -1,64 +1,43 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Calificacion;
 use Illuminate\Http\Request;
 
 class CalificacionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = Calificacion::with(['alumno', 'materia', 'periodo'])->paginate(20);
+        return view('calificaciones.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('calificaciones.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'alumno_id' => 'required|exists:alumnos,id',
+            'materia_id' => 'required|exists:materias,id',
+            'periodo_evaluacion_id' => 'required|exists:periodos_evaluacion,id',
+            'calificacion' => 'required|numeric|min:0|max:100',
+            'observaciones' => 'nullable|string|max:500'
+        ]);
+        Calificacion::create($data);
+        return redirect()->route('calificaciones.index')->with('success', 'Calificación registrada');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(Calificacion $calificacion) {
+        return view('calificaciones.show', compact('calificacion'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(Calificacion $calificacion) {
+        return view('calificaciones.edit', compact('calificacion'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, Calificacion $calificacion) {
+        $data = $request->validate([
+            'calificacion' => 'required|numeric|min:0|max:100',
+            'observaciones' => 'nullable|string|max:500'
+        ]);
+        $calificacion->update($data);
+        return redirect()->route('calificaciones.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(Calificacion $calificacion) {
+        $calificacion->delete();
+        return back()->with('success', 'Eliminado');
     }
 }

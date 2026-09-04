@@ -1,64 +1,46 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\ConceptoPago;
 use Illuminate\Http\Request;
 
 class ConceptoPagoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = ConceptoPago::paginate(15);
+        return view('conceptos.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('conceptos.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'nombre' => 'required|string|unique:conceptos_pago|max:100',
+            'descripcion' => 'nullable|string|max:500',
+            'monto' => 'required|numeric|min:0.01',
+            'es_recurrente' => 'boolean',
+            'periodo' => 'nullable|in:mensual,bimestral,trimestral,semestral,anual'
+        ]);
+        ConceptoPago::create($data);
+        return redirect()->route('conceptos.index')->with('success', 'Concepto creado');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(ConceptoPago $concepto) {
+        return view('conceptos.show', compact('concepto'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(ConceptoPago $concepto) {
+        return view('conceptos.edit', compact('concepto'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, ConceptoPago $concepto) {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:100|unique:conceptos_pago,nombre,'.$concepto->id,
+            'descripcion' => 'nullable|string|max:500',
+            'monto' => 'required|numeric|min:0.01',
+            'es_recurrente' => 'boolean',
+            'periodo' => 'nullable|in:mensual,bimestral,trimestral,semestral,anual'
+        ]);
+        $concepto->update($data);
+        return redirect()->route('conceptos.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(ConceptoPago $concepto) {
+        $concepto->delete();
+        return back()->with('success', 'Eliminado');
     }
 }

@@ -1,64 +1,56 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = User::with(['roles'])->paginate(15);
+        return view('users.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        $roles = \App\Models\Role::all();
+        return view('users.create', compact('roles'));
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'email' => 'required|email|unique:users',
+            'nombre' => 'required|string|max:100',
+            'password' => 'required|string|min:8|confirmed',
+            'activo' => 'boolean'
+        ]);
+        $data['password'] = Hash::make($data['password']);
+        User::create($data);
+        return redirect()->route('users.index')->with('success', 'Usuario creado');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(User $user) {
+        return view('users.show', compact('user'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(User $user) {
+        $roles = \App\Models\Role::all();
+        return view('users.edit', compact('user', 'roles'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, User $user) {
+        $data = $request->validate([
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'nombre' => 'required|string|max:100',
+            'password' => 'nullable|string|min:8|confirmed',
+            'activo' => 'boolean'
+        ]);
+        if ($data['password']) {
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
+        $user->update($data);
+        return redirect()->route('users.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(User $user) {
+        if ($user->id !== auth()->id()) {
+            $user->delete();
+            return back()->with('success', 'Eliminado');
+        }
+        return back()->with('error', 'No puedes eliminarte a ti mismo');
     }
 }

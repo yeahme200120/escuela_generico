@@ -1,64 +1,42 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\NivelEducativo;
 use Illuminate\Http\Request;
 
 class NivelController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = NivelEducativo::paginate(15);
+        return view('niveles.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('niveles.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'nombre' => 'required|string|unique:niveles_educativos|max:100',
+            'descripcion' => 'nullable|string|max:500',
+            'orden' => 'nullable|integer'
+        ]);
+        NivelEducativo::create($data);
+        return redirect()->route('niveles.index')->with('success', 'Nivel creado');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(NivelEducativo $nivel) {
+        return view('niveles.show', compact('nivel'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(NivelEducativo $nivel) {
+        return view('niveles.edit', compact('nivel'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, NivelEducativo $nivel) {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:100|unique:niveles_educativos,nombre,'.$nivel->id,
+            'descripcion' => 'nullable|string|max:500',
+            'orden' => 'nullable|integer'
+        ]);
+        $nivel->update($data);
+        return redirect()->route('niveles.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(NivelEducativo $nivel) {
+        $nivel->delete();
+        return back()->with('success', 'Eliminado');
     }
 }

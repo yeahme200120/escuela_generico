@@ -1,64 +1,42 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Grado;
 use Illuminate\Http\Request;
 
 class GradoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = Grado::with('nivel')->paginate(15);
+        return view('grados.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('grados.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:100',
+            'nivel_educativo_id' => 'required|exists:niveles_educativos,id',
+            'numero' => 'nullable|integer|min:1'
+        ]);
+        Grado::create($data);
+        return redirect()->route('grados.index')->with('success', 'Grado creado');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(Grado $grado) {
+        return view('grados.show', compact('grado'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(Grado $grado) {
+        return view('grados.edit', compact('grado'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, Grado $grado) {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:100',
+            'nivel_educativo_id' => 'required|exists:niveles_educativos,id',
+            'numero' => 'nullable|integer|min:1'
+        ]);
+        $grado->update($data);
+        return redirect()->route('grados.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(Grado $grado) {
+        $grado->delete();
+        return back()->with('success', 'Eliminado');
     }
 }

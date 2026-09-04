@@ -1,64 +1,45 @@
-<?php
-
-namespace App\Http\Controllers;
-
+<?php namespace App\Http\Controllers;
+use App\Models\Parcialidad;
 use Illuminate\Http\Request;
 
 class ParcialidadController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        $items = Parcialidad::with(['concepto', 'alumno'])->paginate(15);
+        return view('parcialidades.index', ['items' => $items]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+        return view('parcialidades.create');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'concepto_pago_id' => 'required|exists:conceptos_pago,id',
+            'alumno_id' => 'required|exists:alumnos,id',
+            'numero_parcialidad' => 'required|integer|min:1',
+            'total_parcialidades' => 'required|integer|min:1',
+            'monto' => 'required|numeric|min:0.01',
+            'fecha_vencimiento' => 'required|date',
+            'estado' => 'in:pendiente,pagado,vencido'
+        ]);
+        Parcialidad::create($data);
+        return redirect()->route('parcialidades.index')->with('success', 'Parcialidad creada');
     }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function show(Parcialidad $parcialidad) {
+        return view('parcialidades.show', compact('parcialidad'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+    public function edit(Parcialidad $parcialidad) {
+        return view('parcialidades.edit', compact('parcialidad'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(Request $request, Parcialidad $parcialidad) {
+        $data = $request->validate([
+            'estado' => 'in:pendiente,pagado,vencido',
+            'fecha_vencimiento' => 'required|date'
+        ]);
+        $parcialidad->update($data);
+        return redirect()->route('parcialidades.index')->with('success', 'Actualizado');
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(Parcialidad $parcialidad) {
+        $parcialidad->delete();
+        return back()->with('success', 'Eliminado');
     }
 }
