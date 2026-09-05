@@ -9,7 +9,13 @@ class SedePolicy extends BasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->puedeHacer('sedes.ver');
+        // Permiso base
+        if (!$user->puedeHacer('sedes.ver')) return false;
+        // Si es superadmin o tiene permiso global, puede ver todas
+        if ($user->isSuperAdmin()) return true;
+        // Si no, solo las de su organización (ya que el modelo Sede tiene organizacion_id)
+        // Pero la consulta en el controlador debe filtrar por organizacion_id
+        return true; // El controlador se encargará de filtrar por organización
     }
 
     public function view(User $user, Sede $sede): bool

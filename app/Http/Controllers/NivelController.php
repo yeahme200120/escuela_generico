@@ -1,42 +1,97 @@
-<?php namespace App\Http\Controllers;
+<?php
+
+namespace App\Http\Controllers;
+
 use App\Models\NivelEducativo;
+use App\Models\Organizacion;
+use App\Http\Requests\NivelEducativoStoreRequest;
+use App\Http\Requests\NivelEducativoUpdateRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class NivelController extends Controller
 {
-    public function index() {
-        $items = NivelEducativo::paginate(15);
-        return view('niveles.index', ['items' => $items]);
+    public function __construct()
+    {
+        $this->middleware('auth');
     }
-    public function create() {
-        return view('niveles.create');
+
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', NivelEducativo::class);
+
+        $niveles = NivelEducativo::with('organizacion')
+            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+                $q->where('organizacion_id', auth()->user()->organizacion_id);
+            })
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = '%' . $request->search . '%';
+                $q->where('nombre', 'LIKE', $search)
+                  ->orWhere('clave', 'LIKE', $search);
+            })
+            ->when($request->filled('activo'), function ($q) use ($request) {
+                $q->where('activo', $request->boolean('activo'));
+            })
+            ->orderBy('orden')
+            ->orderBy('nombre')
+            ->paginate(25)
+            ->appends($request->only(['search', 'activo']));
+
+        return view('niveles_educativos.index', compact('niveles'));
     }
-    public function store(Request $request) {
-        $data = $request->validate([
-            'nombre' => 'required|string|unique:niveles_educativos|max:100',
-            'descripcion' => 'nullable|string|max:500',
-            'orden' => 'nullable|integer'
-        ]);
-        NivelEducativo::create($data);
-        return redirect()->route('niveles.index')->with('success', 'Nivel creado');
+
+    public function create()
+    {
+        $this->authorize('create', NivelEducativo::class);
+        $organizaciones = Organizacion::orderBy('nombre')->get();
+        return view('niveles_educativos.create', compact('organizaciones'));
     }
-    public function show(NivelEducativo $nivel) {
-        return view('niveles.show', compact('nivel'));
+
+    public function store(NivelEducativoStoreRequest $request)
+    {
+        $validated = $request->validated();
+        $validated['activo'] = $request->has('activo');
+
+        $nivel = DB::transaction(function () use ($validated) {
+            return NivelEducativo::create($validated);
+        });
+
+        return redirect()->route('niveles.index')
+            ->with('success', "Nivel '{$nivel->nombre}' creado.");
     }
-    public function edit(NivelEducativo $nivel) {
-        return view('niveles.edit', compact('nivel'));
+
+    public function show(NivelEducativo $nivel)
+    {
+        $this->authorize('view', $nivel);
+        $nivel->load('organizacion');
+        return view('niveles_educativos.show', compact('nivel'));
     }
-    public function update(Request $request, NivelEducativo $nivel) {
-        $data = $request->validate([
-            'nombre' => 'required|string|max:100|unique:niveles_educativos,nombre,'.$nivel->id,
-            'descripcion' => 'nullable|string|max:500',
-            'orden' => 'nullable|integer'
-        ]);
-        $nivel->update($data);
-        return redirect()->route('niveles.index')->with('success', 'Actualizado');
+
+    public function edit(NivelEducativo $nivel)
+    {
+        $this->authorize('update', $nivel);
+        $organizaciones = Organizacion::orderBy('nombre')->get();
+        return view('niveles_educativos.edit', compact('nivel', 'organizaciones'));
     }
-    public function destroy(NivelEducativo $nivel) {
+
+    public function update(NivelEducativoUpdateRequest $request, NivelEducativo $nivel)
+    {
+        $validated = $request->validated();
+        $validated['activo'] = $request->has('activo');
+
+        DB::transaction(function () use ($nivel, $validated) {
+            $nivel->update($validated);
+        });
+
+        return redirect()->route('niveles.index')
+            ->with('success', "Nivel '{$nivel->nombre}' actualizado.");
+    }
+
+    public function destroy(NivelEducativo $nivel)
+    {
+        $this->authorize('delete', $nivel);
         $nivel->delete();
-        return back()->with('success', 'Eliminado');
+        return redirect()->route('niveles.index')
+            ->with('success', "Nivel '{$nivel->nombre}' eliminado.");
     }
 }

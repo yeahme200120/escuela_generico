@@ -4,160 +4,180 @@ namespace App\Http\Controllers\Alumnos;
 
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
+use App\Models\Organizacion;
 use App\Models\Sede;
-use App\Services\Auditoria\AuditService;
-use Illuminate\Http\RedirectResponse;
+use App\Http\Requests\AlumnoStoreRequest;
+use App\Http\Requests\AlumnoUpdateRequest;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 
 class AlumnoController extends Controller
 {
-    public function __construct(
-        private readonly AuditService $audit,
-    ) {}
-
-    public function index(Request $request): View
+    public function __construct()
     {
-        $this->authorize('alumnos.ver');
-
-        $orgId = auth()->user()->organizacion_id;
-
-        $alumnos = Alumno::query()
-            ->where('organizacion_id', $orgId)
-            ->when($request->q, function ($query, $q) {
-                $query->where(function ($sub) use ($q) {
-                    $sub->where('nombre', 'like', "%{$q}%")
-                        ->orWhere('apellido_paterno', 'like', "%{$q}%")
-                        ->orWhere('apellido_materno', 'like', "%{$q}%")
-                        ->orWhere('matricula', 'like', "%{$q}%")
-                        ->orWhere('curp', 'like', "%{$q}%");
-                });
-            })
-            ->when($request->sede_id, fn($query, $sedeId) => $query->where('sede_actual_id', $sedeId))
-            ->when($request->estatus, fn($query, $estatus) => $query->where('estatus', $estatus))
-            ->orderBy('apellido_paterno')
-            ->orderBy('apellido_materno')
-            ->orderBy('nombre')
-            ->paginate(25)
-            ->withQueryString();
-
-        return view('alumnos.index', compact('alumnos'));
+        $this->middleware('auth');
     }
 
-    public function create(): View
+    public function index(Request $request)
     {
-        $this->authorize('alumnos.crear');
+        $this->authorize('viewAny', Alumno::class);
 
-        $orgId = auth()->user()->organizacion_id;
+        $alumnos = Alumno::with(['organizacion', 'sedeActual'])
+            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+                $q->where('organizacion_id', auth()->user()->organizacion_id);
+            })
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = '%' . $request->search . '%';
+                $q->where(function ($query) use ($search) {
+                    $query->where('nombres', 'LIKE', $search)
+                        ->orWhere('apellido_paterno', 'LIKE', $search)
+                        ->orWhere('apellido_materno', 'LIKE', $search)
+                        ->orWhere('matricula', 'LIKE', $search)
+                        ->orWhere('curp', 'LIKE', $search);
+                });
+            })
+            ->when($request->filled('estatus'), function ($q) use ($request) {
+                $q->where('estatus', $request->estatus);
+            })
+            ->when($request->filled('situacion_academica'), function ($q) use ($request) {
+                $q->where('situacion_academica', $request->situacion_academica);
+            })
+            ->when($request->filled('sede_actual_id'), function ($q) use ($request) {
+                $q->where('sede_actual_id', $request->sede_actual_id);
+            })
+            ->orderBy('apellido_paterno')
+            ->orderBy('apellido_materno')
+            ->orderBy('nombres')
+            ->paginate(25)
+            ->appends($request->only(['search', 'estatus', 'situacion_academica', 'sede_actual_id']));
 
-        $sedes = Sede::where('organizacion_id', $orgId)
+        // Para filtros
+        $sedes = Sede::where('activa', true)
+            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+                $q->where('organizacion_id', auth()->user()->organizacion_id);
+            })
             ->orderBy('nombre')
             ->get();
 
-        return view('alumnos.create', compact('sedes'));
+        return view('alumnos.index', compact('alumnos', 'sedes'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function create()
     {
-        $this->authorize('alumnos.crear');
+        $this->authorize('create', Alumno::class);
 
-        $data = $request->validate([
-            'nombre'            => ['required', 'string', 'max:100'],
-            'apellido_paterno'  => ['required', 'string', 'max:100'],
-            'apellido_materno'  => ['nullable', 'string', 'max:100'],
-            'fecha_nacimiento'  => ['nullable', 'date'],
-            'email'             => ['nullable', 'email', 'max:150'],
-            'curp'              => ['nullable', 'string', 'max:18'],
-        ]);
+        $organizaciones = Organizacion::orderBy('nombre')->get();
+        $sedes = Sede::where('activa', true)
+            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+                $q->where('organizacion_id', auth()->user()->organizacion_id);
+            })
+            ->orderBy('nombre')
+            ->get();
 
-        $data['organizacion_id'] = auth()->user()->organizacion_id;
+        return view('alumnos.create', compact('organizaciones', 'sedes'));
+    }
 
-        $alumno = Alumno::create($data);
+    public function store(AlumnoStoreRequest $request)
+    {
+        $validated = $request->validated();
 
-        $this->audit->log(
-            modulo:      'alumnos',
-            accion:      'create',
-            descripcion: "Alumno registrado: {$alumno->nombre} {$alumno->apellido_paterno} #{$alumno->id}",
-            model:       Alumno::class,
-            modelId:     $alumno->id,
-        );
+        // Valores por defecto
+        $validated['estatus'] = $validated['estatus'] ?? 'activo';
+        $validated['situacion_academica'] = $validated['situacion_academica'] ?? 'regular';
+        $validated['activo'] = $request->has('activo');
+        $validated['fecha_ingreso'] = $validated['fecha_ingreso'] ?? now()->toDateString();
+
+        // Generar matrícula automática si no se proporcionó
+        if (empty($validated['matricula'])) {
+            $validated['matricula'] = $this->generarMatricula($validated['organizacion_id']);
+        }
+
+        $alumno = DB::transaction(function () use ($validated) {
+            return Alumno::create($validated);
+        });
 
         return redirect()->route('alumnos.index')
-            ->with('success', 'Alumno registrado.');
+            ->with('success', "Alumno {$alumno->nombre_completo} creado correctamente.");
     }
 
-    public function show(int $id): View
+    public function show(Alumno $alumno)
     {
-        $this->authorize('alumnos.ver');
+        $this->authorize('view', $alumno);
 
-        $orgId = auth()->user()->organizacion_id;
-
-        $alumno = Alumno::where('organizacion_id', $orgId)
-            ->with(['trayectorias', 'tutores', 'bajas'])
-            ->findOrFail($id);
+        $alumno->load(['organizacion', 'sedeActual', 'trayectorias' => function ($q) {
+            $q->orderBy('created_at', 'desc');
+        }, 'tutores', 'gruposHistorial']);
 
         return view('alumnos.show', compact('alumno'));
     }
 
-    public function edit(int $id): View
+    public function edit(Alumno $alumno)
     {
-        $this->authorize('alumnos.editar');
+        $this->authorize('update', $alumno);
 
-        $orgId = auth()->user()->organizacion_id;
+        $organizaciones = Organizacion::orderBy('nombre')->get();
+        $sedes = Sede::where('activa', true)
+            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+                $q->where('organizacion_id', auth()->user()->organizacion_id);
+            })
+            ->orderBy('nombre')
+            ->get();
 
-        $alumno = Alumno::where('organizacion_id', $orgId)->findOrFail($id);
-
-        return view('alumnos.edit', compact('alumno'));
+        return view('alumnos.edit', compact('alumno', 'organizaciones', 'sedes'));
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(AlumnoUpdateRequest $request, Alumno $alumno)
     {
-        $this->authorize('alumnos.editar');
+        $validated = $request->validated();
 
-        $orgId  = auth()->user()->organizacion_id;
-        $alumno = Alumno::where('organizacion_id', $orgId)->findOrFail($id);
+        $validated['estatus'] = $validated['estatus'] ?? 'activo';
+        $validated['situacion_academica'] = $validated['situacion_academica'] ?? 'regular';
+        $validated['activo'] = $request->has('activo');
 
-        $data = $request->validate([
-            'nombre'           => ['required', 'string', 'max:100'],
-            'apellido_paterno' => ['required', 'string', 'max:100'],
-            'apellido_materno' => ['nullable', 'string', 'max:100'],
-            'fecha_nacimiento' => ['nullable', 'date'],
-            'email'            => ['nullable', 'email', 'max:150'],
-            'curp'             => ['nullable', 'string', 'max:18'],
-        ]);
-
-        $alumno->update($data);
-
-        $this->audit->log(
-            modulo:      'alumnos',
-            accion:      'update',
-            descripcion: "Alumno actualizado #{$alumno->id}",
-            model:       Alumno::class,
-            modelId:     $alumno->id,
-        );
-
-        return redirect()->route('alumnos.show', $alumno->id)
-            ->with('success', 'Alumno actualizado.');
-    }
-
-    public function destroy(int $id): RedirectResponse
-    {
-        $this->authorize('alumnos.eliminar');
-
-        $orgId  = auth()->user()->organizacion_id;
-        $alumno = Alumno::where('organizacion_id', $orgId)->findOrFail($id);
-
-        $alumno->delete();
-
-        $this->audit->log(
-            modulo:      'alumnos',
-            accion:      'delete',
-            descripcion: "Alumno eliminado #{$alumno->id}",
-            model:       Alumno::class,
-            modelId:     $alumno->id,
-        );
+        DB::transaction(function () use ($alumno, $validated) {
+            $alumno->update($validated);
+        });
 
         return redirect()->route('alumnos.index')
-            ->with('success', 'Alumno eliminado.');
+            ->with('success', "Alumno {$alumno->nombre_completo} actualizado correctamente.");
+    }
+
+    public function destroy(Alumno $alumno)
+    {
+        $this->authorize('delete', $alumno);
+
+        // Verificar si tiene relaciones activas (pagos, calificaciones, etc.)
+        // Si tiene, no permitir eliminar
+        if ($alumno->pagos()->exists() || $alumno->calificaciones()->exists()) {
+            return back()->with('error', 'No se puede eliminar el alumno porque tiene registros asociados (pagos, calificaciones, etc.).');
+        }
+
+        $nombre = $alumno->nombre_completo;
+        DB::transaction(function () use ($alumno) {
+            $alumno->delete();
+        });
+
+        return redirect()->route('alumnos.index')
+            ->with('success', "Alumno {$nombre} eliminado correctamente.");
+    }
+
+    /**
+     * Genera una matrícula automática: AÑO + NÚMERO CORRELATIVO
+     */
+    private function generarMatricula($organizacionId)
+    {
+        $year = now()->format('Y');
+        $ultimo = Alumno::where('organizacion_id', $organizacionId)
+            ->where('matricula', 'LIKE', $year . '%')
+            ->orderBy('matricula', 'desc')
+            ->first();
+
+        if ($ultimo) {
+            $numero = (int) substr($ultimo->matricula, 4) + 1;
+        } else {
+            $numero = 1;
+        }
+
+        return $year . str_pad($numero, 6, '0', STR_PAD_LEFT);
     }
 }

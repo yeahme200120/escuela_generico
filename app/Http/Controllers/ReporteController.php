@@ -1,58 +1,95 @@
-<?php namespace App\Http\Controllers;
+<?php
+
+namespace App\Http\Controllers;
+
 use App\Models\Reporte;
 use App\Services\GeneradorReportesService;
-use App\Services\PythonJobService;
+use App\Services\Python\PythonJobService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
-class ReporteController extends Controller {
-    
-    private GeneradorReportesService $generador;
-    private PythonJobService $pythonService;
-    
-    public function __construct(GeneradorReportesService $generador, PythonJobService $pythonService) {
-        $this->generador = $generador;
-        $this->pythonService = $pythonService;
+class ReporteController extends Controller
+{
+    public function __construct(
+        private readonly GeneradorReportesService $generador,
+        private readonly PythonJobService $pythonService,
+    ) {}
+
+    public function index(Request $request): View
+    {
+        $this->authorize('reportes.ver');
+        $orgId = auth()->user()->organizacion_id;
+        $reportes = Reporte::where('organizacion_id', $orgId)
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
+        return view('reportes.index', compact('reportes'));
     }
-    
-    public function index() {
-        $reportes = Reporte::paginate(15);
-        return view('reportes.index', ['reportes' => $reportes]);
-    }
-    
-    public function create() {
+
+    public function create(): View
+    {
+        $this->authorize('reportes.ver');
         return view('reportes.create');
     }
-    
-    public function store(\Illuminate\Http\Request $request) {
-        $request->validate([
-            'tipo' => 'required|in:calificaciones,asistencia,estudiantes,docentes,indicadores',
-            'formato' => 'required|in:excel,pdf'
+
+    public function store(Request $request): RedirectResponse
+    {
+        $this->authorize('reportes.exportar');
+        $data = $request->validate([
+            'tipo'        => 'required|in:calificaciones,asistencias,alumnos,docentes,indicadores',
+            'ciclo_id'    => 'nullable|exists:ciclos_escolares,id',
+            'grupo_id'    => 'nullable|exists:grupos,id',
+            'sede_id'     => 'nullable|exists:sedes,id',
+            'fecha_desde' => 'nullable|date',
+            'fecha_hasta' => 'nullable|date',
         ]);
-        
-        $tipo = $request->input('tipo');
-        $filtros = [
-            'ciclo_id' => $request->input('ciclo_id'),
-            'grupo_id' => $request->input('grupo_id'),
-            'sede_id' => $request->input('sede_id'),
-            'fecha_desde' => $request->input('fecha_desde'),
-            'fecha_hasta' => $request->input('fecha_hasta')
-        ];
-        
-        // Despachar trabajo async a Python
-        $this->pythonService->despacharAsync('generar_reportes', [
-            'tipo' => $tipo,
-            'filtros' => $filtros,
-            'formato' => $request->input('formato')
-        ], auth()->id());
-        
+
+        $orgId  = auth()->user()->organizacion_id;
+        $userId = auth()->id();
+
+        // Reportes pequeÃ±os: generar CSV directo
+        if (in_array($data['tipo'], ['calificaciones', 'asistencias'])) {
+            if ($data['tipo'] === 'calificaciones') {
+                $archivo = $this->generador->generarReporteCalificaciones($data, $userId);
+            } else {
+                $archivo = $this->generador->generarReporteAsistencias($data, $userId);
+            }
+            return redirect()->route('reportes.index')
+                ->with('success', "Reporte generado: {$archivo}");
+        }
+
+        // Reportes grandes: encolar a Python Â§78
+        $job = $this->pythonService->despachar(
+            tipo:    'reporte',
+            payload: $data,
+            orgId:   $orgId,
+            userId:  $userId,
+        );
+
         return redirect()->route('reportes.index')
-            ->with('success', 'Reporte en generación. Se notificará cuando esté listo.');
+            ->with('success', "Reporte encolado. Job ID: {$job->job_id}");
     }
-    
-    public function show(Reporte $reporte) {
-        return view('reportes.show', ['reporte' => $reporte]);
+
+    public function show(int $id): View
+    {
+        $this->authorize('reportes.ver');
+        $reporte = Reporte::where('organizacion_id', auth()->user()->organizacion_id)
+            ->findOrFail($id);
+        return view('reportes.show', compact('reporte'));
     }
-    
-    public function descargar(Reporte $reporte) {
-        return response()->download($reporte->ruta_archivo);
+
+    public function descargar(int $id): mixed
+    {
+        $this->authorize('reportes.exportar');
+        $reporte = Reporte::where('organizacion_id', auth()->user()->organizacion_id)
+            ->findOrFail($id);
+
+        if (!$reporte->tieneArchivo()) {
+            return back()->with('error', 'El archivo no estÃ¡ disponible aÃºn.');
+        }
+
+        return Storage::disk('local')->download($reporte->archivo_resultado);
     }
 }
