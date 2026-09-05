@@ -1,5 +1,6 @@
-@extends('components.layouts.app')
-@section('content')
-<x-ui.page-header title='mantenimientos' />
-<x-ui.card><p>M�dulo: mantenimientos - show</p></x-ui.card>
-@endsection
+﻿<x-layouts.app page-title="{{ __('D: Show') }}">
+<x-ui.page-header title="{{ __('D: Show') }}" />
+<x-ui.card>
+    <x-ui.empty-state message="Módulo en construcción: D:/documentos/Proyectos/Sistema de escuela/sistema-escolar/resources/views/mantenimientos/show.blade.php" />
+</x-ui.card>
+</x-layouts.app>

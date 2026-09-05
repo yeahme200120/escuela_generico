@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Alumnos;
 
@@ -13,17 +13,13 @@ use Illuminate\Support\Facades\DB;
 
 class AlumnoController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
 
     public function index(Request $request)
     {
         $this->authorize('viewAny', Alumno::class);
 
         $alumnos = Alumno::with(['organizacion', 'sedeActual'])
-            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+            ->when(!auth()->user()->esSuperadmin(), function ($q) {
                 $q->where('organizacion_id', auth()->user()->organizacion_id);
             })
             ->when($request->filled('search'), function ($q) use ($request) {
@@ -53,7 +49,7 @@ class AlumnoController extends Controller
 
         // Para filtros
         $sedes = Sede::where('activa', true)
-            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+            ->when(!auth()->user()->esSuperadmin(), function ($q) {
                 $q->where('organizacion_id', auth()->user()->organizacion_id);
             })
             ->orderBy('nombre')
@@ -68,7 +64,7 @@ class AlumnoController extends Controller
 
         $organizaciones = Organizacion::orderBy('nombre')->get();
         $sedes = Sede::where('activa', true)
-            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+            ->when(!auth()->user()->esSuperadmin(), function ($q) {
                 $q->where('organizacion_id', auth()->user()->organizacion_id);
             })
             ->orderBy('nombre')
@@ -117,7 +113,7 @@ class AlumnoController extends Controller
 
         $organizaciones = Organizacion::orderBy('nombre')->get();
         $sedes = Sede::where('activa', true)
-            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
+            ->when(!auth()->user()->esSuperadmin(), function ($q) {
                 $q->where('organizacion_id', auth()->user()->organizacion_id);
             })
             ->orderBy('nombre')

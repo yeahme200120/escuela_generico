@@ -1,12 +1,6 @@
-@extends('components.layouts.app')
-@section('content')
-<x-ui.page-header title="Finanzas" />
+﻿<x-layouts.app page-title="{{ __('D: Index') }}">
+<x-ui.page-header title="{{ __('D: Index') }}" />
 <x-ui.card>
-    <p>Panel financiero: cargos, pagos y caja.</p>
-    <div class="d-flex gap-2">
-        <a href="{{ route('finanzas.cargos.index') }}" class="btn btn-outline-primary">Cargos</a>
-        <a href="{{ route('finanzas.pagos.index') }}" class="btn btn-outline-primary">Pagos</a>
-        <a href="{{ route('finanzas.caja.index') }}" class="btn btn-outline-primary">Caja</a>
-    </div>
+    <x-ui.empty-state message="Módulo en construcción: D:/documentos/Proyectos/Sistema de escuela/sistema-escolar/resources/views/finanzas/index.blade.php" />
 </x-ui.card>
-@endsection
+</x-layouts.app>

@@ -1,13 +1,6 @@
-@extends('components.layouts.app')
-@section('content')
-<x-ui.page-header :title="'Horario: ' . ($horario->nombre ?? '')" />
+﻿<x-layouts.app page-title="{{ __('D: Show') }}">
+<x-ui.page-header title="{{ __('D: Show') }}" />
 <x-ui.card>
-    <dl class="row">
-        <dt class="col-sm-3">Nombre</dt>
-        <dd class="col-sm-9">{{ $horario->nombre }}</dd>
-    </dl>
-    <div class="d-flex justify-content-end">
-        <a href="{{ route('horarios.index') }}" class="btn btn-secondary">Volver</a>
-    </div>
+    <x-ui.empty-state message="Módulo en construcción: D:/documentos/Proyectos/Sistema de escuela/sistema-escolar/resources/views/horarios/show.blade.php" />
 </x-ui.card>
-@endsection
+</x-layouts.app>

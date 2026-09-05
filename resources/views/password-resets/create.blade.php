@@ -1,5 +1,6 @@
-@extends('components.layouts.app')
-@section('content')
-<x-ui.page-header title='password-resets' />
-<x-ui.card><p>M�dulo: password-resets - create</p></x-ui.card>
-@endsection
+﻿<x-layouts.app page-title="{{ __('D: Create') }}">
+<x-ui.page-header title="{{ __('D: Create') }}" />
+<x-ui.card>
+    <x-ui.empty-state message="Módulo en construcción: D:/documentos/Proyectos/Sistema de escuela/sistema-escolar/resources/views/password-resets/create.blade.php" />
+</x-ui.card>
+</x-layouts.app>
