@@ -1,4 +1,4 @@
-<?php namespace App\Services;
+<?php namespace App\Services\Comunicacion;
 use App\Models\Notificacion;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;

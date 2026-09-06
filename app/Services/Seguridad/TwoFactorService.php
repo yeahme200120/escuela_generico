@@ -1,4 +1,4 @@
-<?php namespace App\Services;
+<?php namespace App\Services\Seguridad;
 use App\Models\User;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -31,7 +31,7 @@ class TwoFactorService {
     
     public function enviarCodigoSMS($telefono, $codigo) {
         try {
-            \Log::info("SMS enviado a $telefono: código $codigo");
+            \Log::info("SMS enviado a $telefono: cï¿½digo $codigo");
             return true;
         } catch (\Exception $e) {
             \Log::error('Error enviando SMS: ' . $e->getMessage());

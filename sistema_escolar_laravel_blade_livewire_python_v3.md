@@ -2,9 +2,9 @@
 ## Especificación funcional, técnica y arquitectura de implementación
 ### Laravel 12 + Blade + Bootstrap 5 + MySQL + Python
 
-**Versión:** 4.0  
-**Fecha:** 2026-09-04  
-**Estado:** 🔄 En desarrollo activo — ver `sistema_escolar_implementacion_estado.md`  
+**Versión:** 4.1  
+**Fecha:** 2026-09-06  
+**Estado:** 🔄 Backend completo · Frontend parcial · Python pendiente — ver `sistema_escolar_implementacion_estado.md`  
 **Tipo:** Plataforma genérica de gestión escolar, académica, administrativa y financiera  
 **Backend principal:** Laravel 12.x / PHP 8.2+  
 **Frontend administrativo:** Blade + Bootstrap 5 *(Livewire y Alpine.js descartados)*  
@@ -33,11 +33,11 @@
 | Vistas funcionales | ⚠️ Parcial | 12 completas · 18 stubs · ~70 pendientes |
 | Componentes UI | ⚠️ Parcial | 6/17 componentes Blade |
 | Python / FastAPI | 🔲 Pendiente | Directorio `python/` no creado. PythonJobService listo para conectar |
-| API REST | 🔲 Pendiente | Solo `/api/v1/user` · resto de módulos pendientes |
+| API REST | 🔲 Pendiente | Solo `/api/v1/user` · resto pendiente |
 | Testing | 🔲 Pendiente | phpunit.xml configurado · 0 tests escritos |
-| Integraciones externas | 🔲 Pendiente | SMTP real · SMS · pasarelas · LDAP · OAuth · webhooks (WebhookService listo) |
+| Integraciones externas | 🔲 Pendiente | SMTP real · SMS · pasarelas · LDAP · OAuth · WebhookService listo |
 
-> **Bitácora completa y lista de pendientes detallada:** `sistema_escolar_implementacion_estado.md`
+> **Bitácora completa:** `sistema_escolar_implementacion_estado.md` | **Procesos pendientes:** `sistema_escolar_procesos_pendientes.md`
 
 ---
 

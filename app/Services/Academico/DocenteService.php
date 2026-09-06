@@ -1,4 +1,4 @@
-<?php namespace App\Services;
+<?php namespace App\Services\Academico;
 use App\Models\Docente;
 use App\Models\Calificacion;
 use App\Models\Asistencia;

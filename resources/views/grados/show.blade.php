@@ -1,6 +1,18 @@
-﻿<x-layouts.app page-title="{{ __('D: - show') }}">
-<x-ui.page-header title="{{ __('D: - show') }}" />
+﻿<x-layouts.app page-title="Grados">
+<x-ui.page-header title="Grados"
+    :items="[['label'=>'Grados','url'=>route('grados.index')],['label'=>'Detalle']]">
+    <x-slot name="actions">
+        <a href="{{ route('grados.edit',$item) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+    </x-slot>
+</x-ui.page-header>
 <x-ui.card>
-    <x-ui.empty-state message="Módulo en construcción: D:/documentos/Proyectos/Sistema de escuela/sistema-escolar/resources/views/grados/show.blade.php" />
+    <dl class="row mb-0" style="font-size:.875rem">
+        @foreach($item->toArray() as $k => $v)
+        @if(!in_array($k,['id','created_at','updated_at','deleted_at']) && !is_array($v) && !is_null($v))
+        <dt class="col-md-3 text-muted">{{ ucfirst(str_replace('_',' ',$k)) }}</dt>
+        <dd class="col-md-9">{{ $v }}</dd>
+        @endif
+        @endforeach
+    </dl>
 </x-ui.card>
 </x-layouts.app>
