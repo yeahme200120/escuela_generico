@@ -1,59 +1,77 @@
+"""
+Tests básicos de los workers Python §99
+Ejecutar: cd python && python -m pytest tests/ -v
+"""
+
+import asyncio
 import pytest
-from app.workers.calcular_indicadores import execute as calc_indicadores
-from app.workers.calcular_riesgo import execute as calc_riesgo
-from app.workers.generar_reportes import execute as gen_reportes
-from app.workers.procesar_importaciones import execute as proc_importaciones
+import sys
+import os
 
-class TestCalcularIndicadoresWorker:
-    def test_execute_returns_dict(self):
-        payload = {'sede_id': 1, 'ciclo_id': 1}
-        result = calc_indicadores(payload)
-        assert isinstance(result, dict)
-        assert 'sede_id' in result or 'error' in result
-    
-    def test_execute_has_indicadores(self):
-        payload = {'sede_id': 1, 'ciclo_id': 1}
-        result = calc_indicadores(payload)
-        if 'error' not in result:
-            assert 'indicadores' in result
-            assert 'tasa_aprobacion' in result['indicadores']
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-class TestCalcularRiesgoWorker:
-    def test_execute_returns_dict(self):
-        payload = {'grupo_id': 1, 'ciclo_id': 1}
-        result = calc_riesgo(payload)
-        assert isinstance(result, dict)
-    
-    def test_estudiantes_en_riesgo(self):
-        payload = {'grupo_id': 1, 'ciclo_id': 1}
-        result = calc_riesgo(payload)
-        if 'error' not in result:
-            assert 'estudiantes_en_riesgo' in result
 
-class TestGenerarReportesWorker:
-    def test_execute_returns_dict(self):
-        payload = {'tipo': 'calificaciones', 'fecha_inicio': '2024-01-01', 'fecha_fin': '2024-12-31'}
-        result = gen_reportes(payload)
-        assert isinstance(result, dict)
-    
-    def test_archivos_generados(self):
-        payload = {'tipo': 'calificaciones', 'fecha_inicio': '2024-01-01', 'fecha_fin': '2024-12-31'}
-        result = gen_reportes(payload)
-        if 'error' not in result:
-            assert 'archivos_generados' in result
+class TestEstadisticas:
+    def test_calcular_retorna_estructura_correcta(self):
+        from app.workers.estadisticas import calcular
+        data = {"sede_id": 1, "ciclo_id": 1}
+        result = asyncio.run(calcular(data))
+        assert "approval_rate" in result
+        assert "failure_rate" in result
+        assert "dropout_rate" in result
 
-class TestProcesarImportacionesWorker:
-    def test_execute_returns_dict(self):
-        payload = {'archivo_ruta': '/tmp/test.xlsx', 'tipo_datos': 'alumnos'}
-        result = proc_importaciones(payload)
-        assert isinstance(result, dict)
-    
-    def test_estadisticas_en_resultado(self):
-        payload = {'archivo_ruta': '/tmp/test.xlsx', 'tipo_datos': 'alumnos'}
-        result = proc_importaciones(payload)
-        if 'error' not in result:
-            assert 'estadisticas' in result
-            assert 'registros_procesados' in result['estadisticas']
+    def test_calcular_con_datos_vacios(self):
+        from app.workers.estadisticas import calcular
+        result = asyncio.run(calcular({}))
+        assert result is not None
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+
+class TestRiesgo:
+    def test_clasificacion_riesgo_alto(self):
+        from app.workers.riesgo import calcular
+        data = {
+            "sede_id": 1, "ciclo_id": 1,
+            "alumnos": [
+                {"id": 1, "promedio": 4.5, "materias_reprobadas": 3, "pct_asistencia": 0.55},
+            ]
+        }
+        result = asyncio.run(calcular(data))
+        assert result["clasificaciones"][0]["nivel"] == "riesgo_alto"
+
+    def test_clasificacion_normal(self):
+        from app.workers.riesgo import calcular
+        data = {
+            "sede_id": 1, "ciclo_id": 1,
+            "alumnos": [
+                {"id": 2, "promedio": 9.0, "materias_reprobadas": 0, "pct_asistencia": 0.95},
+            ]
+        }
+        result = asyncio.run(calcular(data))
+        assert result["clasificaciones"][0]["nivel"] == "normal"
+
+    def test_resumen_suma_correctamente(self):
+        from app.workers.riesgo import calcular
+        alumnos = [
+            {"id": 1, "promedio": 4.0, "materias_reprobadas": 3, "pct_asistencia": 0.50},
+            {"id": 2, "promedio": 9.5, "materias_reprobadas": 0, "pct_asistencia": 0.99},
+        ]
+        result = asyncio.run(calcular({"alumnos": alumnos}))
+        total = sum(result["resumen"].values())
+        assert total == len(alumnos)
+
+
+class TestHorarios:
+    def test_propuesta_con_grupos(self):
+        from app.workers.horarios import optimizar
+        data = {
+            "grupos": [{"id": 1, "materias": [{"id": 1}, {"id": 2}]}],
+            "docentes": [], "aulas": []
+        }
+        result = asyncio.run(optimizar(data))
+        assert "propuesta" in result
+        assert len(result["propuesta"]) == 2
+
+    def test_propuesta_sin_grupos(self):
+        from app.workers.horarios import optimizar
+        result = asyncio.run(optimizar({"grupos": []}))
+        assert result["propuesta"] == []

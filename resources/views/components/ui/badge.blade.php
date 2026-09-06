@@ -1,8 +1,11 @@
 @props([
-    'type'  => 'secondary',  // primary|secondary|success|danger|warning|info|dark|light
+    'type'  => 'secondary',
     'pill'  => false,
     'small' => false,
 ])
-<span {{ $attributes->merge([
-    'class' => 'badge text-bg-'.$type.($pill ? ' rounded-pill' : '').($small ? ' fw-normal' : '')
-]) }}>{{ $slot }}</span>
+@php
+$validTypes = ['primary','secondary','success','danger','warning','info','dark','light'];
+$t = in_array($type, $validTypes) ? $type : 'secondary';
+$cls = 'badge text-bg-'.$t.($pill?' rounded-pill':'').($small?' fw-normal':'');
+@endphp
+<span {{ $attributes->merge(['class' => $cls]) }}>{{ $slot }}</span>

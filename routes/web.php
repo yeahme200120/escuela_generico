@@ -5,6 +5,7 @@ use App\Http\Controllers\Alumnos\InscripcionController;
 use App\Http\Controllers\Admisiones\ProspectoController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Auditoria\AccessLogController;
 use App\Http\Controllers\Auditoria\AuditLogController;
 use App\Http\Controllers\Auditoria\QueryLogController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Finanzas\PagoController;
 use App\Http\Controllers\Inventario\InventarioController;
 use App\Http\Controllers\NivelController;
 use App\Http\Controllers\RH\EmpleadoController;
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 // ── Raíz ────────────────────────────────────────────────────────────────
@@ -27,6 +29,14 @@ Route::get('/', fn() => redirect()->route(auth()->check() ? 'dashboard' : 'login
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'index'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+    // Password reset §63
+    Route::get('/forgot-password',         [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password',        [PasswordResetController::class, 'store'])->name('password.email');
+    Route::get('/reset-password/{token}',  [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/reset-password',         [PasswordResetController::class, 'update'])->name('password.update');
+    // 2FA challenge
+    Route::get('/two-factor/challenge',    [TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/two-factor/verify',      [TwoFactorController::class, 'verify'])->name('two-factor.verify');
 });
 
 Route::post('/logout', LogoutController::class)->middleware('auth')->name('logout');

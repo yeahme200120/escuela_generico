@@ -1,16 +1,20 @@
-﻿<x-layouts.app page-title="Aulas">
-<x-ui.page-header title="Aulas"
-    :items="[['label'=>'Aulas','url'=>route('aulas.index')],['label'=>'Detalle']]">
+﻿<x-layouts.app page-title="Aula">
+<x-ui.page-header title="Aula"
+    :items="[['label'=>'Aula','url'=>route('aulas.index')],['label'=>'Detalle']]">
     <x-slot name="actions">
         <a href="{{ route('aulas.edit',$item) }}" class="btn btn-sm btn-outline-primary">Editar</a>
     </x-slot>
 </x-ui.page-header>
 <x-ui.card>
     <dl class="row mb-0" style="font-size:.875rem">
-        @foreach($item->toArray() as $k => $v)
-        @if(!in_array($k,['id','created_at','updated_at','deleted_at']) && !is_array($v) && !is_null($v))
-        <dt class="col-md-3 text-muted">{{ ucfirst(str_replace('_',' ',$k)) }}</dt>
-        <dd class="col-md-9">{{ $v }}</dd>
+        @foreach(array_filter(
+            (method_exists($item,'toArray') ? $item->toArray() : (array)$item),
+            fn($k)=>!in_array($k,['id','created_at','updated_at','deleted_at']),
+            ARRAY_FILTER_USE_KEY
+        ) as $k=>$v)
+        @if(!is_array($v) && !is_null($v))
+        <dt class="col-md-4 text-muted">{{ ucfirst(str_replace('_',' ',$k)) }}</dt>
+        <dd class="col-md-8">{{ $v }}</dd>
         @endif
         @endforeach
     </dl>

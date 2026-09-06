@@ -1,21 +1,22 @@
-<x-layouts.app page-title="{{ $nivel->nombre }}">
-<x-ui.page-header title="{{ $nivel->nombre }}" :items="[['label'=>'Niveles','url'=>route('niveles.index')],['label'=>$nivel->nombre]]">
+﻿<x-layouts.app page-title="Nivel Educativo">
+<x-ui.page-header title="Nivel Educativo"
+    :items="[['label'=>'Nivel Educativo','url'=>route('niveles.index')],['label'=>'Detalle']]">
     <x-slot name="actions">
-        <a href="{{ route('niveles.edit', $nivel) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+        <a href="{{ route('niveles.edit',$item) }}" class="btn btn-sm btn-outline-primary">Editar</a>
     </x-slot>
 </x-ui.page-header>
-<x-ui.card title="Grados de este nivel">
-    @if($nivel->grados->count())
-    <ul class="list-group list-group-flush">
-        @foreach($nivel->grados->sortBy('orden') as $g)
-        <li class="list-group-item px-0 d-flex justify-content-between" style="font-size:.875rem">
-            <span>{{ $g->nombre }}</span>
-            <x-ui.badge :type="$g->activo?'success':'secondary'" small>{{ $g->activo?'Activo':'Inactivo' }}</x-ui.badge>
-        </li>
+<x-ui.card>
+    <dl class="row mb-0" style="font-size:.875rem">
+        @foreach(array_filter(
+            (method_exists($item,'toArray') ? $item->toArray() : (array)$item),
+            fn($k)=>!in_array($k,['id','created_at','updated_at','deleted_at']),
+            ARRAY_FILTER_USE_KEY
+        ) as $k=>$v)
+        @if(!is_array($v) && !is_null($v))
+        <dt class="col-md-4 text-muted">{{ ucfirst(str_replace('_',' ',$k)) }}</dt>
+        <dd class="col-md-8">{{ $v }}</dd>
+        @endif
         @endforeach
-    </ul>
-    @else
-    <x-ui.empty-state message="Sin grados configurados." />
-    @endif
+    </dl>
 </x-ui.card>
 </x-layouts.app>

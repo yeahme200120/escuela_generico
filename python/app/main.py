@@ -1,104 +1,85 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from pydantic import BaseModel
-from typing import List, Optional
-import asyncio
-import logging
+"""
+Sistema Escolar — Python Worker (FastAPI)
+§3, §76-§78, §109
 
+El browser NUNCA se comunica directamente con este servicio.
+Flujo: Laravel Job → Redis Queue → Python Worker → resultado → Laravel
+"""
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+import os
+import logging
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# ── Configuración ────────────────────────────────────────────────────────
+SECRET  = os.getenv("PYTHON_SERVICE_SECRET", "")
+LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(os.path.join(LOG_DIR, "python.log")),
+        logging.StreamHandler()
+    ]
+)
+log = logging.getLogger("sistema_escolar")
+
+# ── App ──────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title='Sistema Escolar - Python Workers',
-    description='Microservicio de procesamiento asincronico',
-    version='1.0.0'
+    title="Sistema Escolar — Python Worker",
+    description="Workers de procesamiento pesado. Solo accesible desde Laravel.",
+    version="1.0.0",
+    docs_url="/docs" if os.getenv("PYTHON_DOCS", "false").lower() == "true" else None,
 )
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ── Middleware de autenticación ──────────────────────────────────────────
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    public_paths = ["/", "/health", "/openapi.json"]
+    if request.url.path not in public_paths:
+        token = request.headers.get("X-Python-Secret", "")
+        if not SECRET or token != SECRET:
+            log.warning(f"Unauthorized request to {request.url.path}")
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    response = await call_next(request)
+    return response
 
-class TrabajoProcesamiento(BaseModel):
-    tipo: str
-    datos: dict
-    usuario_id: Optional[int] = None
+# ── Health ───────────────────────────────────────────────────────────────
+@app.get("/")
+@app.get("/health")
+async def health():
+    return {"status": "ok", "service": "Sistema Escolar Python Worker", "version": "1.0.0"}
 
-@app.get('/health')
-def health():
-    return {'status': 'ok', 'version': '1.0.0', 'servicio': 'python-workers'}
+# ── Dispatcher principal §76 ─────────────────────────────────────────────
+@app.post("/jobs/{tipo}")
+async def ejecutar_job(tipo: str, data: dict, request: Request):
+    """Punto de entrada para todos los jobs de Laravel."""
+    from app.workers import estadisticas, riesgo, importaciones, reportes, horarios
 
-@app.get('/workers/status')
-def status_workers():
-    return {
-        'workers': [
-            'calcular_indicadores',
-            'calcular_riesgo',
-            'generar_reportes',
-            'procesar_importaciones'
-        ],
-        'estado': 'listos',
-        'version': '1.0.0'
+    job_id = data.get("job_id", "unknown")
+    log.info(f"Job recibido: tipo={tipo} job_id={job_id}")
+
+    handlers = {
+        "estadisticas":  estadisticas.calcular,
+        "riesgo":        riesgo.calcular,
+        "importacion":   importaciones.procesar,
+        "reporte":       reportes.generar,
+        "horario":       horarios.optimizar,
     }
 
-@app.post('/workers/calcular-indicadores')
-def calcular_indicadores(payload: TrabajoProcesamiento, background_tasks: BackgroundTasks):
-    logger.info(f"Trabajo recibido: {payload.tipo}")
-    try:
-        from app.workers.calcular_indicadores import execute
-        background_tasks.add_task(execute, payload.datos)
-        return {
-            'job_id': 'pending',
-            'status': 'processing',
-            'tipo': payload.tipo,
-            'mensaje': 'Procesando indicadores academicos'
-        }
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    handler = handlers.get(tipo)
+    if not handler:
+        raise HTTPException(status_code=404, detail=f"Tipo de job no soportado: {tipo}")
 
-@app.post('/workers/calcular-riesgo')
-def calcular_riesgo(payload: TrabajoProcesamiento, background_tasks: BackgroundTasks):
-    logger.info(f"Trabajo recibido: {payload.tipo}")
     try:
-        from app.workers.calcular_riesgo import execute
-        background_tasks.add_task(execute, payload.datos)
-        return {
-            'job_id': 'pending',
-            'status': 'processing',
-            'tipo': payload.tipo,
-            'mensaje': 'Calculando riesgo academico'
-        }
+        result = await handler(data)
+        log.info(f"Job completado: {job_id}")
+        return {"job_id": job_id, "status": "completed", "results": result}
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        log.error(f"Job fallido: {job_id} — {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post('/workers/generar-reportes')
-def generar_reportes(payload: TrabajoProcesamiento, background_tasks: BackgroundTasks):
-    logger.info(f"Trabajo recibido: {payload.tipo}")
-    try:
-        from app.workers.generar_reportes import execute
-        background_tasks.add_task(execute, payload.datos)
-        return {
-            'job_id': 'pending',
-            'status': 'processing',
-            'tipo': payload.tipo,
-            'mensaje': 'Generando reportes masivos'
-        }
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post('/workers/procesar-importaciones')
-def procesar_importaciones(payload: TrabajoProcesamiento, background_tasks: BackgroundTasks):
-    logger.info(f"Trabajo recibido: {payload.tipo}")
-    try:
-        from app.workers.procesar_importaciones import execute
-        background_tasks.add_task(execute, payload.datos)
-        return {
-            'job_id': 'pending',
-            'status': 'processing',
-            'tipo': payload.tipo,
-            'mensaje': 'Procesando importacion de datos'
-        }
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run(app, host='0.0.0.0', port=8001, log_level='info')

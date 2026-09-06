@@ -1,1 +1,1 @@
-# FastAPI app
+# Sistema Escolar Python App

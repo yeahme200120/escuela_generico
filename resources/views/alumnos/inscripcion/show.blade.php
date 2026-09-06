@@ -1,8 +1,8 @@
-﻿<x-layouts.app page-title="Grado">
-<x-ui.page-header title="Grado"
-    :items="[['label'=>'Grado','url'=>route('grados.index')],['label'=>'Detalle']]">
+﻿<x-layouts.app page-title="Detalle Inscripción">
+<x-ui.page-header title="Detalle Inscripción"
+    :items="[['label'=>'Detalle Inscripción','url'=>route('alumnos.inscripcion.index')],['label'=>'Detalle']]">
     <x-slot name="actions">
-        <a href="{{ route('grados.edit',$item) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+        <a href="{{ route('alumnos.inscripcion.edit',$item) }}" class="btn btn-sm btn-outline-primary">Editar</a>
     </x-slot>
 </x-ui.page-header>
 <x-ui.card>

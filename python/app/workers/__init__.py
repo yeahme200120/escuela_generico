@@ -1,1 +1,1 @@
-# Workers package
+# Workers del Sistema Escolar
