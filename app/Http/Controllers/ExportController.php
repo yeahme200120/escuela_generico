@@ -1,6 +1,6 @@
 <?php namespace App\Http\Controllers;
 use App\Services\ExportService;
-use App\Services\PythonJobService;
+use App\Services\Python\PythonJobService;
 use Illuminate\Http\Request;
 
 class ExportController extends Controller {
@@ -37,7 +37,7 @@ class ExportController extends Controller {
             return response()->download($resultado['ruta']);
         }
         
-        return redirect()->back()->with('error', 'Error generando exportación.');
+        return redirect()->back()->with('error', 'Error generando exportaciï¿½n.');
     }
     
     public function exportarPDF(Request $request) {
@@ -53,6 +53,6 @@ class ExportController extends Controller {
         ], auth()->id());
         
         return redirect()->back()
-            ->with('success', 'Exportación PDF en progreso. Se descargará automáticamente.');
+            ->with('success', 'Exportaciï¿½n PDF en progreso. Se descargarï¿½ automï¿½ticamente.');
     }
 }

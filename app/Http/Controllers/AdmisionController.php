@@ -1,7 +1,7 @@
 <?php namespace App\Http\Controllers;
 use App\Models\Admision;
-use App\Services\RiesgoAcademicoService;
-use App\Services\PythonJobService;
+use App\Services\Academico\RiesgoAcademicoService;
+use App\Services\Python\PythonJobService;
 
 class AdmisionController extends Controller {
     
@@ -35,6 +35,6 @@ class AdmisionController extends Controller {
         }
         
         return redirect()->route('admisiones.show', $admision)
-            ->with('success', 'Admisión procesada correctamente.');
+            ->with('success', 'Admisiï¿½n procesada correctamente.');
     }
 }

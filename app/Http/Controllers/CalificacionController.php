@@ -1,43 +1,103 @@
-<?php namespace App\Http\Controllers;
-use App\Models\Calificacion;
-use App\Services\RiesgoAcademicoService;
+<?php
 
-class CalificacionController extends Controller {
-    
-    private RiesgoAcademicoService $riesgoService;
-    
-    public function __construct(RiesgoAcademicoService $riesgoService) {
-        $this->riesgoService = $riesgoService;
-    }
-    
-    public function index() {
-        $calificaciones = Calificacion::with(['alumno', 'materia'])
-            ->paginate(15);
-        return view('calificaciones.index', ['calificaciones' => $calificaciones]);
-    }
-    
-    public function store(\Illuminate\Http\Request $request) {
-        $request->validate([
-            'alumno_id' => 'required|exists:alumnos,id',
-            'materia_id' => 'required|exists:materias,id',
-            'calificacion' => 'required|numeric|min:0|max:100'
-        ]);
-        
-        $calificacion = Calificacion::create($request->all());
-        
-        return redirect()->route('calificaciones.show', $calificacion)
-            ->with('success', 'Calificaci髇 registrada correctamente.');
-    }
-    
-    public function show(Calificacion $calificacion) {
-        // Calcular riesgo si calificaci髇 es baja
-        if ($calificacion->calificacion < 70) {
-            $riesgo = $this->riesgoService->evaluarRiesgo($calificacion->alumno_id, null);
+namespace App\Http\Controllers;
+
+use App\Http\Requests\Academico\CalificacionRequest;
+use App\Models\Alumno;
+use App\Models\Calificacion;
+use App\Models\CicloEscolar;
+use App\Models\Grupo;
+use App\Models\Materia;
+use App\Models\PeriodoEvaluacion;
+use App\Services\Academico\CalificacionService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class CalificacionController extends Controller
+{
+    public function __construct(private readonly CalificacionService $calService) {}
+
+    public function index(Request $request): View
+    {
+        $this->authorize('calificaciones.ver');
+        $orgId     = auth()->user()->organizacion_id;
+        $grupoId   = $request->grupo_id;
+        $periodoId = $request->periodo_id;
+
+        $grupos   = Grupo::whereHas('sede', fn($q) => $q->where('organizacion_id', $orgId))->activos()->get();
+        $periodos = PeriodoEvaluacion::whereHas('cicloEscolar', fn($q) => $q->where('organizacion_id', $orgId))->orderByDesc('created_at')->get();
+
+        $alumnos        = collect();
+        $materias       = collect();
+        $calificaciones = [];
+        $promedios      = [];
+
+        if ($grupoId && $periodoId) {
+            $grupo    = Grupo::findOrFail($grupoId);
+            $alumnos  = Alumno::where('sede_actual_id', $grupo->sede_id)->activos()->get();
+            $materias = Materia::whereHas('docenteGrupoMaterias', fn($q) => $q->where('grupo_id', $grupoId))->get();
+
+            $cals = Calificacion::where('grupo_id', $grupoId)->where('periodo_evaluacion_id', $periodoId)->get();
+            foreach ($cals as $c) { $calificaciones[$c->alumno_id][$c->materia_id] = $c; }
+            foreach ($alumnos as $a) {
+                $vals = $cals->where('alumno_id', $a->id)->pluck('calificacion')->filter();
+                $promedios[$a->id] = $vals->count() ? round($vals->avg(), 1) : null;
+            }
         }
-        
-        return view('calificaciones.show', [
-            'calificacion' => $calificacion,
-            'riesgo' => $riesgo ?? null
-        ]);
+
+        return view('calificaciones.index', compact('grupos', 'periodos', 'alumnos', 'materias', 'calificaciones', 'promedios'));
+    }
+
+    public function create(Request $request): View
+    {
+        $this->authorize('calificaciones.registrar');
+        $alumno  = Alumno::findOrFail($request->alumno_id);
+        $materia = Materia::findOrFail($request->materia_id);
+        $periodo = PeriodoEvaluacion::findOrFail($request->periodo_id);
+        return view('calificaciones.create', compact('alumno', 'materia', 'periodo'));
+    }
+
+    public function store(CalificacionRequest $request): RedirectResponse
+    {
+        $data    = $request->validated();
+        $periodo = PeriodoEvaluacion::findOrFail($data['periodo_evaluacion_id']);
+
+        if ($periodo->cerrado && !$this->authorize('calificaciones.autorizar')) {
+            return back()->with('error', 'El periodo est谩 cerrado. Se requiere autorizaci贸n especial.');
+        }
+
+        $cal = $this->calService->registrar($data, auth()->id());
+
+        return redirect()->route('calificaciones.index', [
+            'grupo_id'  => $data['grupo_id'],
+            'periodo_id'=> $data['periodo_evaluacion_id'],
+        ])->with('success', "Calificaci贸n registrada: {$cal->calificacion}");
+    }
+
+    public function edit(Calificacion $calificacion): View
+    {
+        $this->authorize('calificaciones.editar');
+        return view('calificaciones.edit', compact('calificacion'));
+    }
+
+    public function update(CalificacionRequest $request, Calificacion $calificacion): RedirectResponse
+    {
+        $data    = $request->validated();
+        $periodo = PeriodoEvaluacion::findOrFail($data['periodo_evaluacion_id']);
+
+        if ($periodo->cerrado) {
+            $this->authorize('calificaciones.autorizar');
+        }
+
+        $this->calService->registrar($data, auth()->id());
+        return back()->with('success', 'Calificaci贸n actualizada.');
+    }
+
+    public function destroy(Calificacion $calificacion): RedirectResponse
+    {
+        $this->authorize('calificaciones.editar');
+        $calificacion->delete();
+        return back()->with('success', 'Calificaci贸n eliminada.');
     }
 }

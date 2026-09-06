@@ -1,64 +1,52 @@
-<?php namespace App\Services;
-use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Facades\Excel;
+<?php
 
-class ExportService {
-    public function exportarExcel($modelo, $columnas = [], $filtros = []) {
-        try {
-            $query = app("App\Models\\$modelo");
-            
-            foreach ($filtros as $campo => $valor) {
-                $query = $query->where($campo, $valor);
+namespace App\Services;
+
+use App\Services\Auditoria\AuditService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+
+/**
+ * ExportService — §79
+ * Exportaciones auditables en CSV. Para Excel/PDF pesados usa PythonJobService.
+ */
+class ExportService
+{
+    public function __construct(private readonly AuditService $audit) {}
+
+    /**
+     * Exporta cualquier query a CSV y lo almacena en storage.
+     * Registra auditoría completa: quién, qué, filtros, nro. registros, archivo, Request ID.
+     */
+    public function exportarCSV(string $modulo, \Illuminate\Database\Eloquent\Builder $query, array $columnas, array $filtros = []): string
+    {
+        $registros = $query->get();
+        $nombre    = "exportaciones/{$modulo}_" . now()->format('Ymd_His') . '.csv';
+
+        $csv = implode(',', array_keys($columnas)) . "\n";
+        foreach ($registros as $row) {
+            $linea = [];
+            foreach ($columnas as $campo => $etiqueta) {
+                $val = data_get($row, $campo, '');
+                $linea[] = '"' . str_replace('"', '""', $val) . '"';
             }
-            
-            $datos = $query->get($columnas ?: ['*']);
-            
-            $nombreArchivo = strtolower($modelo) . '_' . now()->format('Ymd_His') . '.xlsx';
-            $rutaTmp = storage_path("exports/$nombreArchivo");
-            
-            \Log::info("Exportando $modelo a Excel: $rutaTmp");
-            
-            return [
-                'archivo' => $nombreArchivo,
-                'ruta' => $rutaTmp,
-                'registros' => $datos->count()
-            ];
-        } catch (\Exception $e) {
-            \Log::error("Error en exportaci�n: " . $e->getMessage());
-            return false;
+            $csv .= implode(',', $linea) . "\n";
         }
-    }
-    
-    public function exportarPDF($modelo, $columnas = [], $titulo = '') {
-        try {
-            $datos = app("App\Models\\$modelo")->get($columnas ?: ['*']);
-            
-            $nombreArchivo = strtolower($modelo) . '_' . now()->format('Ymd_His') . '.pdf';
-            $rutaTmp = storage_path("exports/$nombreArchivo");
-            
-            \Log::info("Exportando $modelo a PDF: $rutaTmp");
-            
-            return [
-                'archivo' => $nombreArchivo,
-                'ruta' => $rutaTmp,
-                'registros' => $datos->count()
-            ];
-        } catch (\Exception $e) {
-            \Log::error("Error en exportaci�n PDF: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    public function auditarExportacion($usuario_id, $modelo, $filtros, $formato, $cantidad) {
-        DB::table('exportacion_logs')->insert([
-            'usuario_id' => $usuario_id,
-            'modelo' => $modelo,
-            'filtros' => json_encode($filtros),
-            'formato' => $formato,
-            'cantidad_registros' => $cantidad,
-            'ip' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'created_at' => now()
-        ]);
+
+        Storage::disk('local')->put($nombre, $csv);
+
+        $this->audit->log(
+            modulo:      $modulo,
+            accion:      'export',
+            descripcion: "Exportación CSV: {$registros->count()} registros",
+            metadata: [
+                'archivo'   => $nombre,
+                'filtros'   => $filtros,
+                'registros' => $registros->count(),
+                'columnas'  => array_keys($columnas),
+            ]
+        );
+
+        return $nombre;
     }
 }
