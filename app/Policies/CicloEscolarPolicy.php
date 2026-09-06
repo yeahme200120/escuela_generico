@@ -7,31 +7,23 @@ use App\Models\User;
 
 class CicloEscolarPolicy extends BasePolicy
 {
-    public function viewAny(User $user): bool
-    {
-        return $user->puedeHacer('ciclos_escolares.ver');
-    }
+    public function viewAny(User $user): bool { return $user->puedeHacer('sedes.ver'); }
 
     public function view(User $user, CicloEscolar $ciclo): bool
     {
-        if ($user->organizacion_id !== $ciclo->organizacion_id) return false;
-        return $user->puedeHacer('ciclos_escolares.ver', $ciclo->id);
+        return $ciclo->organizacion_id === $user->organizacion_id;
     }
 
-    public function create(User $user): bool
-    {
-        return $user->puedeHacer('ciclos_escolares.crear');
-    }
+    public function create(User $user): bool { return $user->puedeHacer('sedes.crear'); }
 
     public function update(User $user, CicloEscolar $ciclo): bool
     {
-        if ($user->organizacion_id !== $ciclo->organizacion_id) return false;
-        return $user->puedeHacer('ciclos_escolares.editar', $ciclo->id);
+        if ($ciclo->organizacion_id !== $user->organizacion_id) return false;
+        return $user->puedeHacer('sedes.editar');
     }
 
     public function delete(User $user, CicloEscolar $ciclo): bool
     {
-        if ($user->organizacion_id !== $ciclo->organizacion_id) return false;
-        return $user->puedeHacer('ciclos_escolares.eliminar', $ciclo->id);
+        return false; // Ciclos no se eliminan físicamente §22
     }
 }
