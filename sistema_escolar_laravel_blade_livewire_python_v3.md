@@ -2,9 +2,24 @@
 ## Especificación funcional, técnica y arquitectura de implementación
 ### Laravel 12 + Blade + Bootstrap 5 + MySQL + Python
 
-**Versión:** 4.1  
-**Fecha:** 2026-09-06  
-**Estado:** 🔄 Backend completo · Frontend parcial · Python pendiente — ver `sistema_escolar_implementacion_estado.md`  
+**Versión:** 4.2
+**Fecha:** 2026-09-06
+**Estado:** ✅ Backend completo · 127/204 vistas funcionales · Python base listo — ver `sistema_escolar_implementacion_estado.md`
+
+---
+
+## Estado de implementación por fase (2026-09-06)
+
+| Fase | Contenido | Estado |
+|------|-----------|--------|
+| 1 — Núcleo | Laravel, MySQL, migraciones, modelos, RBAC, trazabilidad, auth, middleware | ✅ Completo |
+| 2 — Catálogos | Materias, planes de estudio | ✅ BD+modelos+vistas |
+| 3 — Trayectoria | Alumnos, tutores, docentes, bajas, reingresos | ✅ BD+modelos+controllers+vistas |
+| 4 — Operación académica | Horarios, asistencias, calificaciones, regularizaciones | ✅ BD+modelos+services+vistas índice |
+| 5 — Control escolar | Documentos, folios, tipos | ✅ BD+modelos+controller |
+| 6 — Finanzas | Cargos, pagos, caja, conceptos | ✅ BD+modelos+services+vistas índice |
+| 7 — Python | FastAPI, workers estadísticas/riesgo/importaciones/reportes/horarios | ✅ Estructura base funcional |
+| 8 — Admin avanzada | RH, inventario, admisiones, comunicación, 2FA, password reset | ✅ BD+modelos+controllers+vistas |  
 **Tipo:** Plataforma genérica de gestión escolar, académica, administrativa y financiera  
 **Backend principal:** Laravel 12.x / PHP 8.2+  
 **Frontend administrativo:** Blade + Bootstrap 5 *(Livewire y Alpine.js descartados)*  
